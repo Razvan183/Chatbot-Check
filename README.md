@@ -1,79 +1,226 @@
 # ChatbotCheck
 
-ChatbotCheck is a quality-assurance platform for retrieval-augmented generation
-(RAG) chatbots. It will test whether chatbot answers are grounded in retrieved
-documents, properly cited, safe to release, and improving between versions.
+**An in-progress quality-assurance platform for retrieval-augmented generation
+(RAG) systems.**
 
-The project is intentionally built in small, understandable stages. The current
-stage provides document loading, paragraph-aware chunking, SQLite persistence,
-repeatable ingestion, and semantic retrieval over the sample policy corpus.
+ChatbotCheck is designed to evaluate whether chatbot answers are grounded in
+retrieved documents, correctly cited, safe to release, and improving across
+different RAG configurations.
 
-For a complete architecture walkthrough, module-by-module reference, current
-roadmap status, and technical-interview preparation, see
-[`PROJECT_TECHNICAL_GUIDE.md`](PROJECT_TECHNICAL_GUIDE.md).
+The current milestone implements the complete document ingestion and semantic
+retrieval foundation: source documents are loaded, split into overlapping
+chunks, persisted in SQLite, exposed through FastAPI, and ranked against user
+questions with sentence-transformer embeddings.
 
-## Current features
+> **Current status:** ingestion and retrieval are working and covered by 50
+> automated tests. Answer generation and the evaluation engine are the next
+> development stages.
 
-- FastAPI application entry point
-- `GET /health` endpoint
-- Interactive API documentation
-- Environment-based configuration
-- SQLAlchemy models backed by SQLite
-- Seven fictional company-policy documents
-- UTF-8 Markdown and text loading
-- Bounded, overlapping document chunking
-- Sentence-transformer embedding utilities
-- Cosine-similarity retrieval over stored chunks
-- Four repeatable demo chatbot configurations
-- Repeatable document ingestion
+## Why this project?
+
+Building a RAG chatbot is only the first step. A production team must also be
+able to answer:
+
+- Did the retriever find the correct evidence?
+- Is the answer supported by that evidence?
+- Does the chatbot refuse questions that cannot be answered safely?
+- Did a new prompt or configuration improve the system—or cause a regression?
+
+ChatbotCheck is being built to make these questions measurable and repeatable.
+
+## Current capabilities
+
+- FastAPI backend with interactive OpenAPI documentation
+- Environment-based application configuration
+- SQLite persistence through SQLAlchemy
+- Eight-model database schema for documents, chatbot versions, and evaluations
+- Seven realistic company-policy source documents
+- Deterministic UTF-8 Markdown and text loading
+- Paragraph-aware chunking with configurable, size-safe overlap
+- Atomic and repeatable document ingestion
+- Lazy, cached sentence-transformer model loading
+- Cosine-similarity ranking of stored document chunks
+- Four reproducible chatbot configurations for future comparison
 - Read-only document and chunk API endpoints
-- Automated tests for the implemented behavior
+- Isolated unit and integration-style tests
 
-## Prerequisites
+## Architecture
 
-- Python 3.10 or newer
-
-You can check your Python version with:
-
-```powershell
-python --version
+```text
+Policy documents
+       │
+       ▼
+Document loader
+       │
+       ▼
+Paragraph-aware chunker
+       │
+       ▼
+SQLAlchemy ingestion ───────────────► SQLite
+                                         │
+User question                            │
+       │                                 │
+       ▼                                 ▼
+Sentence-transformer embeddings ◄── Stored chunks
+       │
+       ▼
+Cosine-similarity ranking
+       │
+       ▼
+Top-k relevant chunks
 ```
 
-On Windows, if `python` is unavailable but the Python launcher is installed,
-use `py` in place of `python` in the commands below.
+FastAPI provides access to the stored documents, while the retrieval layer can
+be called from Python. A later milestone will connect retrieval to prompt
+construction, answer generation, and automated evaluation.
 
-## Local setup
+## Technology stack
 
-Create a virtual environment:
+| Area | Technology |
+|---|---|
+| API | FastAPI, Uvicorn |
+| Validation | Pydantic |
+| Persistence | SQLAlchemy, SQLite |
+| Embeddings | Sentence Transformers |
+| Vector operations | NumPy |
+| Testing | Pytest, HTTPX |
+| Configuration | python-dotenv |
+
+## Project structure
+
+```text
+app/
+├── api/             Document API endpoints
+├── db/              Database connection, models, and schemas
+├── ingestion/       File loading, chunking, and embeddings
+├── rag/             Semantic retrieval
+├── config.py        Environment-based settings
+└── main.py          FastAPI entry point
+
+data/
+└── sample_company_policy/   Demo policy corpus
+
+scripts/
+├── inspect_documents.py     Inspect source files
+├── ingest_documents.py      Load and persist the corpus
+└── create_demo_versions.py  Seed RAG configurations
+
+tests/                        Automated test suite
+```
+
+For a detailed explanation of every component, function, database relationship,
+and design decision, see
+[`PROJECT_TECHNICAL_GUIDE.md`](PROJECT_TECHNICAL_GUIDE.md).
+
+## Getting started
+
+### Prerequisites
+
+- Python 3.10 or newer
+- Git
+
+### 1. Clone the repository
+
+```bash
+git clone <your-repository-url>
+cd <repository-folder>
+```
+
+### 2. Create and activate a virtual environment
+
+Windows PowerShell:
 
 ```powershell
 python -m venv .venv
-```
-
-Activate it in PowerShell:
-
-```powershell
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the dependencies:
+macOS/Linux:
 
-```powershell
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
 python -m pip install -r requirements.txt
 ```
 
-Start the API:
+### 4. Configure the application
+
+Configuration has local defaults, so this step is optional.
+
+Windows PowerShell:
 
 ```powershell
+Copy-Item .env.example .env
+```
+
+macOS/Linux:
+
+```bash
+cp .env.example .env
+```
+
+Available settings include the database URL, data directory, chunk size,
+overlap, embedding model, and mock-LLM mode.
+
+### 5. Ingest the demo documents
+
+```bash
+python -m scripts.ingest_documents
+```
+
+The current sample corpus produces:
+
+```text
+Loaded 7 documents
+Created 27 chunks
+Saved documents and chunks to database
+```
+
+The operation replaces previously ingested demo documents in one transaction,
+so it is safe to run repeatedly.
+
+### 6. Seed the chatbot configurations
+
+```bash
+python -m scripts.create_demo_versions
+```
+
+This creates or updates four configurations:
+
+| Version | Top-k | Temperature | Purpose |
+|---|---:|---:|---|
+| `baseline_v1` | 3 | 0.2 | Baseline configuration |
+| `more_context_v2` | 5 | 0.2 | Retrieves additional context |
+| `strict_refusal_v3` | 5 | 0.0 | More deterministic behavior |
+| `weak_bad_demo_v4` | 1 | 0.7 | Intentional regression example |
+
+### 7. Start the API
+
+```bash
 python -m uvicorn app.main:app --reload
 ```
 
-Then open:
+Open:
 
 - Health check: <http://127.0.0.1:8000/health>
 - Interactive API documentation: <http://127.0.0.1:8000/docs>
+- Documents: <http://127.0.0.1:8000/documents>
 
-The health endpoint should return:
+## API endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Check whether the API is running |
+| `GET` | `/documents` | List ingested documents |
+| `GET` | `/documents/{document_id}` | Get one document |
+| `GET` | `/documents/{document_id}/chunks` | List its chunks in source order |
+
+Example health response:
 
 ```json
 {
@@ -82,96 +229,123 @@ The health endpoint should return:
 }
 ```
 
-## Configuration
+## Semantic retrieval
 
-Application settings live in `app/config.py`. Each setting has a local default,
-so a `.env` file is optional.
+The retrieval layer:
 
-To customize the settings, copy the example file:
+1. reads all stored chunks and their document metadata;
+2. embeds the question and chunks in one batch;
+3. calculates cosine similarity for every chunk;
+4. sorts by descending score with a deterministic tie-breaker;
+5. returns the requested number of results.
 
-```powershell
-Copy-Item .env.example .env
+Example:
+
+```python
+from app.rag.retriever import retrieve_chunks
+
+results = retrieve_chunks(
+    "How many vacation days do employees receive after two years?",
+    top_k=3,
+)
+
+for result in results:
+    print(result["score"], result["filename"])
+    print(result["chunk_text"])
 ```
 
-You can then edit `.env` without changing the Python source. The real `.env`
-file is ignored by Git because it may eventually contain local secrets, while
-`.env.example` documents the variables the application supports.
+The first real retrieval may download
+`sentence-transformers/all-MiniLM-L6-v2` if it is not already cached.
 
-## Database
+## Testing
 
-ChatbotCheck currently uses SQLite through SQLAlchemy. When the API starts, it
-creates `evalforge.db` and any missing tables automatically.
+Run the complete suite:
 
-The database file is local generated state, so it is excluded from Git. Table
-definitions live in `app/db/models.py`; connection and session setup live in
-`app/db/database.py`.
-
-## Inspecting source documents
-
-The ingestion loader reads UTF-8 Markdown and text files into Python
-dictionaries containing the filename, source path, document type, and text.
-
-Run the inspection script from the project root:
-
-```powershell
-python -m scripts.inspect_documents
-```
-
-## Running tests
-
-Run the test suite from the project root:
-
-```powershell
+```bash
 python -m pytest
 ```
 
-The chunker keeps normal paragraphs together, enforces a configurable character
-limit, and adds as much trailing context as safely fits in the next chunk.
-
-The embedding utilities load the configured sentence-transformer model lazily
-and cache it for reuse. The first real embedding request may download the model
-if it is not already available locally.
-
-The retriever embeds a question together with the stored document chunks,
-ranks the chunks by cosine similarity, and returns the most relevant results
-with their document metadata.
-
-## Ingesting documents
-
-Load the policy files, split them into chunks, and save them to SQLite:
-
-```powershell
-python -m scripts.ingest_documents
-```
-
-The script replaces previously ingested demo documents, so it is safe to rerun
-after editing a policy or changing the chunk settings.
-
-Direct execution also works:
-
-```powershell
-python scripts/ingest_documents.py
-```
-
-## Creating chatbot versions
-
-Create or refresh the four demo RAG configurations:
-
-```powershell
-python -m scripts.create_demo_versions
-```
-
-The script is safe to rerun. Existing demo versions are updated in place so
-their configuration remains consistent without creating duplicate records.
-
-## Document API
-
-After ingesting documents and starting the API, these endpoints are available:
+Current result:
 
 ```text
-GET /documents
-GET /documents/{document_id}
-GET /documents/{document_id}/chunks
+50 passed
 ```
 
-Use <http://127.0.0.1:8000/docs> to explore and call them interactively.
+The tests cover:
+
+- loader validation and deterministic ordering;
+- chunk-size limits, overlap, headings, and content preservation;
+- embedding input validation, model caching, and cosine similarity;
+- repeatable transactional ingestion;
+- semantic ranking and edge cases;
+- database foreign-key enforcement;
+- API ordering, serialization, and 404 responses;
+- idempotent chatbot-version seeding.
+
+External embedding calls are replaced with deterministic test doubles, keeping
+the suite fast and independent of network availability.
+
+## Notable engineering decisions
+
+- **Simple before distributed:** SQLite and in-memory ranking keep the current
+  implementation transparent and easy to inspect.
+- **Atomic ingestion:** old and new corpus records are replaced in one
+  transaction, with rollback on failure.
+- **Bounded overlap:** chunks receive prior context only when it fits inside the
+  configured size limit.
+- **Lazy model initialization:** the embedding model is loaded on first use and
+  cached for the process lifetime.
+- **Dependency injection:** database session factories can be replaced with
+  isolated in-memory databases during tests.
+- **Deterministic behavior:** files, API responses, chunks, and equal-score
+  retrieval results have explicit ordering.
+
+## Current limitations
+
+- Retrieval is not yet exposed as an HTTP endpoint.
+- The project does not yet generate chatbot answers.
+- Chatbot-version settings are stored but not yet connected to runtime behavior.
+- Chunk embeddings are recomputed for each retrieval request.
+- SQLite table creation is used instead of a migration framework.
+- Authentication, pagination, observability, and production deployment are not
+  implemented yet.
+
+These choices are intentional for the current learning-focused MVP stage.
+
+## Roadmap
+
+- [x] FastAPI application and configuration
+- [x] SQLAlchemy database schema
+- [x] Sample company-policy corpus
+- [x] Document loading and chunking
+- [x] Repeatable database ingestion
+- [x] Document API endpoints
+- [x] Embeddings and semantic retrieval
+- [x] Reproducible chatbot configurations
+- [ ] RAG prompt and answer generator
+- [ ] End-to-end chat pipeline and API
+- [ ] Evaluation datasets and metrics
+- [ ] Failure classification and regression comparison
+- [ ] Dashboard and HTML reports
+- [ ] Docker and CI quality gates
+
+## What this project demonstrates
+
+- Designing a modular RAG backend from first principles
+- Building deterministic ingestion and retrieval pipelines
+- Modeling future evaluation workflows relationally
+- Writing testable Python through clear boundaries and dependency injection
+- Handling edge cases instead of relying only on happy-path demos
+- Developing an AI system incrementally while keeping completed and planned
+  functionality clearly separated
+
+## Documentation
+
+- [`PROJECT_TECHNICAL_GUIDE.md`](PROJECT_TECHNICAL_GUIDE.md) — architecture,
+  complete module reference, design tradeoffs, and interview preparation
+- [`Instructions.md`](Instructions.md) — full MVP build roadmap
+
+## License
+
+This project is currently intended for educational and portfolio use. Add a
+license before accepting external contributions or redistribution.
