@@ -108,9 +108,6 @@ scripts/
 tests/                        Automated test suite
 ```
 
-For a detailed explanation of every component, function, database relationship,
-and design decision, see
-[`PROJECT_TECHNICAL_GUIDE.md`](PROJECT_TECHNICAL_GUIDE.md).
 
 ## Getting started
 
@@ -339,13 +336,7 @@ These choices are intentional for the current learning-focused MVP stage.
 - Developing an AI system incrementally while keeping completed and planned
   functionality clearly separated
 
-## Documentation
-
-- [`PROJECT_TECHNICAL_GUIDE.md`](PROJECT_TECHNICAL_GUIDE.md) — architecture,
-  complete module reference, design tradeoffs, and interview preparation
-- [`Instructions.md`](Instructions.md) — full MVP build roadmap
 
 ## License
 
-This project is currently intended for educational and portfolio use. Add a
-license before accepting external contributions or redistribution.
+This project is currently intended for educational and portfolio use.
