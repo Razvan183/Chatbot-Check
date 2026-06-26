@@ -94,11 +94,13 @@ def test_retrieve_chunks_returns_highest_scores_first(
     assert results[0]["score"] >= results[1]["score"]
     assert set(results[0]) == {
         "chunk_id",
+        "chunk_key",
         "document_id",
         "filename",
         "chunk_text",
         "score",
     }
+    assert results[0]["chunk_key"] == "vacation_policy.md::0"
 
 
 def test_retrieve_chunks_limits_results_to_available_chunks(

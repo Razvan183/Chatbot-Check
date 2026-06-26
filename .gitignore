@@ -13,6 +13,7 @@ env/
 
 # Test and tooling caches
 .pytest_cache/
+.pytest_tmp/
 .coverage
 htmlcov/
 .mypy_cache/
@@ -22,6 +23,7 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
+*.log
 
 # IDE and operating-system files
 .vscode/
@@ -30,4 +32,3 @@ htmlcov/
 Thumbs.db
 
 Instructions.md
-PROJECT_TECHNICAL_GUIDE.md

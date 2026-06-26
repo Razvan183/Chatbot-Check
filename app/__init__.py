@@ -1,1 +1,1 @@
-"""EvalForge application package."""
+"""Chatbot Check application package."""

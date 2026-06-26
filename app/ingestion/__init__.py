@@ -1,1 +1,1 @@
-"""Document ingestion package for EvalForge."""
+"""Document ingestion package for Chatbot Check."""

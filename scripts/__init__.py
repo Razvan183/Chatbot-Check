@@ -1,1 +1,1 @@
-"""Command-line helper scripts for EvalForge."""
+"""Command-line helper scripts for Chatbot Check."""

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import DATA_DIR, DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from app.db.database import SessionLocal, create_database_tables
 from app.db.models import Document, DocumentChunk
-from app.ingestion.chunking import chunk_text, extract_section_title
+from app.ingestion.chunking import build_chunk_key, chunk_text, extract_section_title
 from app.ingestion.loaders import load_documents_from_folder
 
 
@@ -64,6 +64,10 @@ def ingest_documents(
                 document.chunks.append(
                     DocumentChunk(
                         chunk_index=chunk_index,
+                        chunk_key=build_chunk_key(
+                            loaded_document["filename"],
+                            chunk_index,
+                        ),
                         chunk_text=chunk,
                         section_title=extract_section_title(chunk),
                     )

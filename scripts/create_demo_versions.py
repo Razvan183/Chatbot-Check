@@ -1,4 +1,4 @@
-"""Create the demo chatbot configurations used by EvalForge."""
+"""Create the demo chatbot configurations used by Chatbot Check."""
 
 from collections.abc import Callable
 from pathlib import Path

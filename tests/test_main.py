@@ -12,5 +12,13 @@ def test_health_endpoint() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "service": "evalforge-api",
+        "service": "chatbot-check-api",
     }
+
+
+def test_demo_ui_is_served_at_root() -> None:
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert "RAG QA Demo" in response.text

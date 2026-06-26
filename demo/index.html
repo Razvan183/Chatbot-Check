@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chatbot Check Demo</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Chatbot Check</p>
+          <h1>RAG QA Demo</h1>
+        </div>
+
+        <nav class="nav-tabs" aria-label="Demo sections">
+          <button class="nav-tab active" data-view="chatView" type="button">Chat</button>
+          <button class="nav-tab" data-view="evalView" type="button">Evaluations</button>
+          <button class="nav-tab" data-view="docsView" type="button">Corpus</button>
+        </nav>
+
+        <section class="control-group">
+          <label for="versionSelect">Version</label>
+          <select id="versionSelect"></select>
+          <div id="versionDetails" class="detail-list"></div>
+        </section>
+
+        <section class="control-group">
+          <label for="datasetSelect">Dataset</label>
+          <select id="datasetSelect"></select>
+          <button id="runEvaluationButton" class="primary-button" type="button">Run Evaluation</button>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section id="chatView" class="view active">
+          <div class="top-bar">
+            <div>
+              <p class="eyebrow">Live answer trace</p>
+              <h2>Ask the policy assistant</h2>
+            </div>
+            <div id="systemStatus" class="status-pill">Checking</div>
+          </div>
+
+          <div class="question-row">
+            <textarea id="questionInput" rows="3">How quickly must lost company equipment be reported?</textarea>
+            <button id="askButton" class="ask-button" type="button" title="Ask question">Ask</button>
+          </div>
+
+          <div class="quick-prompts" aria-label="Example questions">
+            <button type="button">How many vacation days after two years?</button>
+            <button type="button">Does the company reimburse gym memberships?</button>
+            <button type="button">What is the hotel reimbursement limit per night?</button>
+          </div>
+
+          <section class="answer-panel">
+            <div class="panel-heading">
+              <h3>Answer</h3>
+              <span id="latencyBadge">Waiting</span>
+            </div>
+            <div id="answerOutput" class="answer-output">Ask a question to see the answer, citations, and retrieved evidence.</div>
+          </section>
+
+          <section>
+            <div class="panel-heading">
+              <h3>Retrieved Evidence</h3>
+              <span id="citationBadge">No citations</span>
+            </div>
+            <div id="evidenceList" class="evidence-grid"></div>
+          </section>
+        </section>
+
+        <section id="evalView" class="view">
+          <div class="top-bar">
+            <div>
+              <p class="eyebrow">RAG quality score</p>
+              <h2>Evaluate and tune</h2>
+            </div>
+            <button id="refreshRunsButton" class="secondary-button" type="button">Refresh</button>
+          </div>
+
+          <div id="runSummary" class="metric-strip"></div>
+          <section class="scorecard-panel">
+            <div class="panel-heading">
+              <h3>Quality Scorecard</h3>
+              <span id="scorecardBadge">Select a run</span>
+            </div>
+            <div id="scorecardMetrics" class="metric-strip"></div>
+            <div id="failureSummary" class="breakdown-grid"></div>
+            <div id="recommendationsList" class="list-stack"></div>
+          </section>
+
+          <section class="tuning-panel">
+            <div class="panel-heading">
+              <h3>Runtime Tuning</h3>
+              <span>Query-time settings</span>
+            </div>
+            <div class="tuning-grid">
+              <label for="tunedNameInput">Name</label>
+              <input id="tunedNameInput" type="text" value="tuned_runtime_v1">
+              <label for="tunedTopKInput">Top-k</label>
+              <input id="tunedTopKInput" type="number" min="1" max="20" value="5">
+              <label for="tunedTemperatureInput">Temperature</label>
+              <input id="tunedTemperatureInput" type="number" min="0" max="2" step="0.1" value="0">
+              <label for="tunedModelInput">Model</label>
+              <input id="tunedModelInput" type="text" value="mock">
+              <label for="tunedPromptInput">Prompt template</label>
+              <textarea id="tunedPromptInput" rows="4" placeholder="Leave empty to use the default strict RAG prompt."></textarea>
+              <button id="createVersionButton" class="secondary-button" type="button">Create Tuned Version</button>
+            </div>
+          </section>
+
+          <section class="comparison-panel">
+            <div class="panel-heading">
+              <h3>Compare Runs</h3>
+              <span id="comparisonBadge">Choose two runs</span>
+            </div>
+            <div class="compare-controls">
+              <label for="baselineRunSelect">Baseline</label>
+              <select id="baselineRunSelect"></select>
+              <label for="candidateRunSelect">Candidate</label>
+              <select id="candidateRunSelect"></select>
+              <button id="compareRunsButton" class="secondary-button" type="button">Compare</button>
+              <button id="openReportButton" class="secondary-button" type="button">Open Report</button>
+            </div>
+            <div id="comparisonSummary" class="metric-strip"></div>
+            <div id="comparisonBreakdown" class="breakdown-grid"></div>
+            <div id="comparisonCases" class="list-stack"></div>
+          </section>
+          <div class="split-layout">
+            <section>
+              <div class="panel-heading">
+                <h3>Runs</h3>
+                <span id="runCountBadge">0 runs</span>
+              </div>
+              <div id="runsList" class="list-stack"></div>
+            </section>
+            <section>
+              <div class="panel-heading">
+                <h3>Case Results</h3>
+                <span id="resultCountBadge">Select a run</span>
+              </div>
+              <div id="resultsList" class="list-stack"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="docsView" class="view">
+          <div class="top-bar">
+            <div>
+              <p class="eyebrow">Ground truth</p>
+              <h2>Ingested corpus</h2>
+            </div>
+            <button id="refreshDocsButton" class="secondary-button" type="button">Refresh</button>
+          </div>
+          <div id="documentsList" class="document-grid"></div>
+          <section class="chunk-reader">
+            <div class="panel-heading">
+              <h3>Document Chunks</h3>
+              <span id="chunkCountBadge">Select a document</span>
+            </div>
+            <div id="chunksList" class="list-stack"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

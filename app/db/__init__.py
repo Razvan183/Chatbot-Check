@@ -1,1 +1,1 @@
-"""Database package for EvalForge."""
+"""Database package for Chatbot Check."""

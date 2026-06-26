@@ -7,6 +7,16 @@ PARAGRAPH_SEPARATOR = re.compile(r"\n\s*\n")
 HEADING_PATTERN = re.compile(r"^\s*#{1,6}\s+(.+?)\s*$", re.MULTILINE)
 
 
+def build_chunk_key(filename: str, chunk_index: int) -> str:
+    """Build a stable, readable key for a source chunk."""
+    if not isinstance(filename, str) or not filename.strip():
+        raise ValueError("filename must be a non-empty string")
+    if not isinstance(chunk_index, int) or isinstance(chunk_index, bool) or chunk_index < 0:
+        raise ValueError("chunk_index must be a non-negative integer")
+
+    return f"{filename.strip()}::{chunk_index}"
+
+
 def extract_section_title(text_chunk: str) -> str | None:
     """Return the first Markdown heading found in a chunk."""
     match = HEADING_PATTERN.search(text_chunk)

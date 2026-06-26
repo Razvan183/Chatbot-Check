@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
 from app.db.models import Document, DocumentChunk
+from app.ingestion.chunking import build_chunk_key
 from app.ingestion.embeddings import cosine_similarity, embed_texts
 
 
@@ -15,6 +16,7 @@ class RetrievedChunk(TypedDict):
     """Public shape returned for one ranked document chunk."""
 
     chunk_id: int
+    chunk_key: str
     document_id: int
     filename: str
     chunk_text: str
@@ -52,6 +54,8 @@ def retrieve_chunks(
         ranked_chunks.append(
             {
                 "chunk_id": chunk.id,
+                "chunk_key": chunk.chunk_key
+                or build_chunk_key(filename, chunk.chunk_index),
                 "document_id": chunk.document_id,
                 "filename": filename,
                 "chunk_text": chunk.chunk_text,

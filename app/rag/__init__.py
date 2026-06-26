@@ -1,1 +1,1 @@
-"""Retrieval-augmented generation components for EvalForge."""
+"""Retrieval-augmented generation components for Chatbot Check."""

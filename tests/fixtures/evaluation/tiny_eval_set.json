@@ -1,0 +1,27 @@
+{
+  "name": "Tiny Eval Set",
+  "description": "Small fixture",
+  "domain": "company_policy",
+  "cases": [
+    {
+      "id": "q001",
+      "question": "How many vacation days?",
+      "expected_answer": "Employees receive 21 days.",
+      "expected_chunk_ids": [1, 2],
+      "expected_chunk_keys": ["vacation_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q002",
+      "question": "Does the company reimburse gym memberships?",
+      "expected_answer": null,
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": [],
+      "question_type": "unanswerable",
+      "difficulty": "easy",
+      "should_be_answerable": false
+    }
+  ]
+}

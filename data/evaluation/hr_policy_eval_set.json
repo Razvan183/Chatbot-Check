@@ -1,0 +1,507 @@
+{
+  "name": "HR Policy Eval Set",
+  "description": "50-case evaluation set for the sample company policy corpus, covering retrieval, citations, numeric consistency, refusal behavior, and cross-policy questions.",
+  "domain": "company_policy",
+  "cases": [
+    {
+      "id": "q001",
+      "question": "How many vacation days do employees receive after two full years?",
+      "expected_answer": "Full-time employees receive 21 paid vacation days per calendar year after completing two full years of employment.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q002",
+      "question": "How far in advance must vacation requests be submitted?",
+      "expected_answer": "Vacation requests must be submitted through the HR portal at least 10 business days before the planned absence.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q003",
+      "question": "What is the hotel reimbursement limit per night?",
+      "expected_answer": "Hotel costs are reimbursable up to 150 euros per night, including taxes.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::1"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q004",
+      "question": "How soon after a trip ends must expense claims be submitted?",
+      "expected_answer": "Expense claims must be submitted through the expense system within 15 calendar days after the trip ends.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::2", "travel_reimbursement_policy.md::3"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q005",
+      "question": "How quickly must lost company equipment be reported?",
+      "expected_answer": "Lost, stolen, or seriously damaged equipment must be reported to both the IT Help Desk and the employee's manager within 24 hours of discovery.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::1", "equipment_policy.md::2"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q006",
+      "question": "What should an employee do if a lost device may contain company data?",
+      "expected_answer": "The employee must report the event to the Security team immediately so access can be revoked or the device can be remotely wiped.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::2"],
+      "question_type": "multi_document",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q007",
+      "question": "How many days per week may eligible employees work remotely?",
+      "expected_answer": "Eligible employees may work remotely up to 3 days per week.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["remote_work_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q008",
+      "question": "What are the core collaboration hours for remote employees?",
+      "expected_answer": "Remote employees must be reachable during core collaboration hours from 10:00 to 16:00 in their local time zone.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["remote_work_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q009",
+      "question": "When must a sick employee notify their manager on the first day of absence?",
+      "expected_answer": "Employees who are unable to work because of illness must notify their direct manager no later than 09:30 on the first day of absence.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["sick_leave_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q010",
+      "question": "When is a medical certificate required for sick leave?",
+      "expected_answer": "An absence lasting longer than 3 consecutive calendar days requires a medical certificate.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["sick_leave_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q011",
+      "question": "What training must new employees complete within the first 5 working days?",
+      "expected_answer": "Security awareness and data-protection training must be completed within the first 5 working days.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["onboarding_guide.md::2"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q012",
+      "question": "If I travel for work and lose my laptop at the airport, what should I do?",
+      "expected_answer": "The employee should follow the Equipment Policy and Security Policy by reporting the lost equipment to IT, their manager, and the Security team, and report suspected theft to local authorities when safe.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::2", "security_policy.md::3", "travel_reimbursement_policy.md::3"],
+      "question_type": "multi_document",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q013",
+      "question": "Does the company reimburse gym memberships?",
+      "expected_answer": null,
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": [],
+      "question_type": "unanswerable",
+      "difficulty": "easy",
+      "should_be_answerable": false
+    },
+    {
+      "id": "q014",
+      "question": "What is the company's parental leave allowance?",
+      "expected_answer": null,
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": [],
+      "question_type": "unanswerable",
+      "difficulty": "easy",
+      "should_be_answerable": false
+    },
+    {
+      "id": "q015",
+      "question": "Since employees receive 30 vacation days, how can they request them?",
+      "expected_answer": "The documents do not say employees receive 30 vacation days; vacation requests must be submitted through the HR portal at least 10 business days before the planned absence.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::0", "vacation_policy.md::1"],
+      "question_type": "misleading",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q016",
+      "question": "How many paid vacation days do full-time employees receive during their first two full years?",
+      "expected_answer": "Full-time employees receive 18 paid vacation days per calendar year during their first two full years of employment.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q017",
+      "question": "Who must approve vacation requests before travel is booked?",
+      "expected_answer": "The employee's direct manager must approve the request before travel or other commitments are booked.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q018",
+      "question": "What extra approval is needed for more than 10 consecutive working days of vacation?",
+      "expected_answer": "Requests for more than 10 consecutive working days also require approval from the department director.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::1"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q019",
+      "question": "How many unused vacation days may employees carry over into the next calendar year?",
+      "expected_answer": "Employees may carry over a maximum of 5 unused vacation days into the next calendar year.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::1", "vacation_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q020",
+      "question": "By what date must carried-over vacation days be used?",
+      "expected_answer": "Carried-over vacation days must be used by March 31 or they expire.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::1", "vacation_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q021",
+      "question": "Are unused vacation days above the carryover limit paid out?",
+      "expected_answer": "Unused vacation days above the 5-day carryover limit are not paid out unless local employment law requires otherwise.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q022",
+      "question": "What should employees do if approved leave plans change?",
+      "expected_answer": "Employees should update or cancel approved leave in the HR portal as soon as their plans change.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["vacation_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q023",
+      "question": "What class is required for flights shorter than 6 hours?",
+      "expected_answer": "Economy class is required for flights shorter than 6 hours.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q024",
+      "question": "When may premium economy be approved for flights?",
+      "expected_answer": "Premium economy may be approved for flights lasting 6 hours or longer.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q025",
+      "question": "Who must approve business-class travel?",
+      "expected_answer": "Business-class travel requires written approval from the Chief Operating Officer.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::0", "travel_reimbursement_policy.md::1"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q026",
+      "question": "What is the daily meal reimbursement limit during approved business travel?",
+      "expected_answer": "Meals are reimbursable up to a total of 35 euros per day during approved business travel.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q027",
+      "question": "Is alcohol reimbursable during business travel?",
+      "expected_answer": "Alcohol is not reimbursable during approved business travel.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::1", "travel_reimbursement_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q028",
+      "question": "When is a receipt required for an individual transport expense?",
+      "expected_answer": "A receipt is required for any individual transport expense above 20 euros.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q029",
+      "question": "What happens to expenses submitted after 15 days?",
+      "expected_answer": "Expenses submitted after 15 days require a written explanation and may be rejected by Finance.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["travel_reimbursement_policy.md::3"],
+      "question_type": "factual",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q030",
+      "question": "What approval is needed for additional equipment costing up to 200 euros?",
+      "expected_answer": "Additional equipment costing up to 200 euros requires manager approval.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q031",
+      "question": "What approval is required for equipment requests above 200 euros?",
+      "expected_answer": "Requests above 200 euros require approval from the IT Operations manager as well as manager approval.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q032",
+      "question": "May employees let friends or family members use company equipment?",
+      "expected_answer": "Employees must not allow friends or family members to use company equipment.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q033",
+      "question": "Can employees disable antivirus, encryption, or automatic security updates installed by IT?",
+      "expected_answer": "Employees may not disable device-management, antivirus, encryption, or automatic security updates installed by IT.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::1"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q034",
+      "question": "What information should employees provide when reporting lost or stolen equipment?",
+      "expected_answer": "Employees should provide the asset tag, last known location, and a short description of what happened.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q035",
+      "question": "When must all company equipment be returned?",
+      "expected_answer": "All company equipment must be returned on or before the employee's final working day.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["equipment_policy.md::3"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q036",
+      "question": "How many characters must company account passwords contain at minimum?",
+      "expected_answer": "Passwords must contain at least 14 characters.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q037",
+      "question": "Should employees approve an authentication request they did not initiate?",
+      "expected_answer": "Employees must never approve an authentication request they did not initiate.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::0", "security_policy.md::1"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q038",
+      "question": "Where may confidential information be stored?",
+      "expected_answer": "Confidential information may be stored only in company-approved systems.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q039",
+      "question": "What must employees do when accessing company systems from public or shared Wi-Fi?",
+      "expected_answer": "Employees must use the company VPN when accessing company systems from public or shared Wi-Fi.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::2", "remote_work_policy.md::3"],
+      "question_type": "multi_document",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q040",
+      "question": "How quickly should suspected phishing or unusual account activity be reported?",
+      "expected_answer": "Suspected phishing, accidental data disclosure, lost devices, stolen devices, and unusual account activity must be reported to the Security team immediately.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::3"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q041",
+      "question": "What should employees do when they receive a suspicious message?",
+      "expected_answer": "Employees who receive a suspicious message should not click links, open attachments, reply, or forward it; they should use the Report Phishing button and then delete the message when instructed.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::4"],
+      "question_type": "factual",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q042",
+      "question": "How many working days per calendar year may employees temporarily work from another location within their country of employment?",
+      "expected_answer": "Employees may temporarily work from another location within their country of employment for up to 20 working days per calendar year.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["remote_work_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q043",
+      "question": "How far in advance must requests to work remotely from another country be submitted?",
+      "expected_answer": "Requests to work remotely from another country must be submitted at least 30 calendar days in advance.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["remote_work_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q044",
+      "question": "Who must approve working remotely from another country?",
+      "expected_answer": "Working remotely from another country requires written approval from both HR and the Legal team.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["remote_work_policy.md::1"],
+      "question_type": "citation_required",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q045",
+      "question": "What kind of workspace and internet connection are remote employees responsible for maintaining?",
+      "expected_answer": "Remote employees are responsible for maintaining a private, professional workspace and a stable internet connection.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["remote_work_policy.md::2"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q046",
+      "question": "When must employees send a medical certificate to HR after returning from sick leave?",
+      "expected_answer": "The medical certificate must be sent confidentially to HR within 2 business days after the employee returns to work.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["sick_leave_policy.md::1"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q047",
+      "question": "Are employees required to share a diagnosis with their manager when reporting sick leave?",
+      "expected_answer": "Employees are not required to share a diagnosis with their manager.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["sick_leave_policy.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q048",
+      "question": "When should new employees complete required forms before their start date?",
+      "expected_answer": "New employees should complete required forms at least 2 business days before their start date.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["onboarding_guide.md::0"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q049",
+      "question": "How long is the introductory period for new employees?",
+      "expected_answer": "New employees have a 90-day introductory period.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["onboarding_guide.md::2", "onboarding_guide.md::3"],
+      "question_type": "factual",
+      "difficulty": "easy",
+      "should_be_answerable": true
+    },
+    {
+      "id": "q050",
+      "question": "Can I store confidential company files in my personal cloud storage if I use multi-factor authentication?",
+      "expected_answer": "No. Confidential files must not be copied to personal cloud storage; confidential information may be stored only in company-approved systems.",
+      "expected_chunk_ids": [],
+      "expected_chunk_keys": ["security_policy.md::1"],
+      "question_type": "misleading",
+      "difficulty": "medium",
+      "should_be_answerable": true
+    }
+  ]
+}
