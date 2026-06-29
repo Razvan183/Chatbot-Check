@@ -12,6 +12,10 @@ from sqlalchemy.pool import StaticPool
 from app.db.database import Base, get_db
 from app.db.models import Document, DocumentChunk, EvalCase, EvalDataset
 from app.evaluation.dataset_generator import MockDatasetGenerator
+from app.evaluation.draft_generation import (
+    DraftDatasetGenerationError,
+    parse_generated_cases,
+)
 from app.main import app
 
 
@@ -120,13 +124,27 @@ def test_create_review_and_publish_draft_dataset(
     assert draft_payload["draft_case_count"] == 2
     assert draft_payload["approved_case_count"] == 0
     assert [case["status"] for case in draft_payload["cases"]] == ["draft", "draft"]
+    assert draft_payload["cases"][0]["supporting_chunks"] == [
+        {
+            "chunk_key": "policy.md::0",
+            "document_id": 1,
+            "filename": "policy.md",
+            "chunk_index": 0,
+            "chunk_text": "Employees receive 21 vacation days after two years.",
+        }
+    ]
+    assert draft_payload["cases"][1]["supporting_chunks"] == []
 
     first_case_id = draft_payload["cases"][0]["id"]
     second_case_id = draft_payload["cases"][1]["id"]
 
     approve_response = client.patch(
         f"/evaluation-drafts/{draft_payload['id']}/cases/{first_case_id}",
-        json={"status": "approved", "reviewer_notes": "Grounded in chunk 0."},
+        json={
+            "status": "approved",
+            "reviewer_notes": "Grounded in chunk 0.",
+            "expected_chunk_keys": ["policy.md::0", "missing.md::9"],
+        },
     )
     reject_response = client.patch(
         f"/evaluation-drafts/{draft_payload['id']}/cases/{second_case_id}",
@@ -135,6 +153,8 @@ def test_create_review_and_publish_draft_dataset(
 
     assert approve_response.status_code == 200
     assert approve_response.json()["status"] == "approved"
+    assert approve_response.json()["expected_chunk_keys"] == ["policy.md::0"]
+    assert approve_response.json()["supporting_chunks"][0]["chunk_key"] == "policy.md::0"
     assert reject_response.status_code == 200
     assert reject_response.json()["status"] == "rejected"
 
@@ -176,3 +196,34 @@ def test_publish_requires_at_least_one_approved_case(
     assert response.json() == {
         "detail": "At least one draft case must be approved before publishing"
     }
+
+
+def test_parse_generated_cases_extracts_wrapped_json() -> None:
+    generated = """
+    Here is the requested JSON:
+    {
+      "cases": [
+        {
+          "id": "q001",
+          "question": "How many vacation days after two years?",
+          "expected_answer": "Employees receive 21 vacation days.",
+          "expected_chunk_keys": ["policy.md::0"],
+          "question_type": "factual",
+          "difficulty": "easy",
+          "should_be_answerable": true,
+          "confidence": 0.91
+        }
+      ]
+    }
+    Done.
+    """
+
+    cases = parse_generated_cases(generated, valid_chunk_keys={"policy.md::0"})
+
+    assert cases[0]["id"] == "q001"
+    assert cases[0]["expected_chunk_keys"] == ["policy.md::0"]
+
+
+def test_parse_generated_cases_reports_likely_truncation() -> None:
+    with pytest.raises(DraftDatasetGenerationError, match="try fewer cases"):
+        parse_generated_cases('{"cases": [{"id": "q001", "question"', set())

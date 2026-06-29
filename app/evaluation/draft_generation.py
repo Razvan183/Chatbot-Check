@@ -175,9 +175,12 @@ def parse_generated_cases(
 ) -> list[dict[str, Any]]:
     """Parse and validate generated JSON candidate cases."""
     try:
-        parsed = json.loads(_strip_json_fence(generated_text))
+        parsed = json.loads(_extract_json_payload(generated_text))
     except json.JSONDecodeError as exc:
-        raise DraftDatasetGenerationError("Dataset generator returned invalid JSON") from exc
+        raise DraftDatasetGenerationError(
+            "Dataset generator returned invalid JSON. The response may have been "
+            "truncated; try fewer cases or increase DATASET_GENERATOR_MAX_OUTPUT_TOKENS."
+        ) from exc
 
     raw_cases = parsed.get("cases") if isinstance(parsed, dict) else parsed
     if not isinstance(raw_cases, list):
@@ -205,6 +208,26 @@ def _strip_json_fence(text: str) -> str:
             lines = lines[:-1]
         cleaned = "\n".join(lines).strip()
     return cleaned
+
+
+def _extract_json_payload(text: str) -> str:
+    """Return the JSON object or list from a model response."""
+    cleaned = _strip_json_fence(text)
+    if cleaned.startswith("{") or cleaned.startswith("["):
+        return cleaned
+
+    object_start = cleaned.find("{")
+    list_start = cleaned.find("[")
+    starts = [index for index in (object_start, list_start) if index >= 0]
+    if not starts:
+        return cleaned
+
+    start = min(starts)
+    closing = "}" if cleaned[start] == "{" else "]"
+    end = cleaned.rfind(closing)
+    if end <= start:
+        return cleaned[start:]
+    return cleaned[start : end + 1]
 
 
 def _normalize_case(

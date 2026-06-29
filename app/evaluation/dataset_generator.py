@@ -13,7 +13,7 @@ from app.config import (
 )
 
 
-OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
+GEMINI_GENERATE_CONTENT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 
 class DatasetGeneratorError(RuntimeError):
@@ -34,7 +34,7 @@ class DisabledDatasetGenerator:
         """Raise a clear error because generation is disabled."""
         del prompt
         raise DatasetGeneratorError(
-            "Dataset generation is disabled. Set DATASET_GENERATOR_MODE=openai "
+            "Dataset generation is disabled. Set DATASET_GENERATOR_MODE=gemini "
             "and configure DATASET_GENERATOR_API_KEY to enable it."
         )
 
@@ -52,8 +52,8 @@ class MockDatasetGenerator:
         return self.response_text
 
 
-class OpenAIDatasetGenerator:
-    """Dataset authoring provider backed by the OpenAI Responses API."""
+class GeminiDatasetGenerator:
+    """Dataset authoring provider backed by the Gemini API."""
 
     def __init__(
         self,
@@ -64,7 +64,7 @@ class OpenAIDatasetGenerator:
     ) -> None:
         if not isinstance(api_key, str) or not api_key.strip():
             raise DatasetGeneratorError(
-                "DATASET_GENERATOR_API_KEY must be configured for OpenAI generation"
+                "DATASET_GENERATOR_API_KEY must be configured for Gemini generation"
             )
         if not isinstance(model, str) or not model.strip():
             raise DatasetGeneratorError("DATASET_GENERATOR_MODEL must be configured")
@@ -78,24 +78,48 @@ class OpenAIDatasetGenerator:
         self.timeout_seconds = timeout_seconds
         self.max_output_tokens = max_output_tokens
 
+    @property
+    def endpoint_url(self) -> str:
+        """Return the Gemini generateContent endpoint for the configured model."""
+        normalized_model = self.model.strip()
+        model_path = (
+            normalized_model
+            if normalized_model.startswith("models/")
+            else f"models/{normalized_model}"
+        )
+        return f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent"
+
     def generate_text(self, prompt: str) -> str:
-        """Generate dataset-authoring text through the Responses API."""
+        """Generate dataset-authoring text through the Gemini API."""
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
         payload = {
-            "model": self.model,
-            "input": prompt.strip(),
-            "max_output_tokens": self.max_output_tokens,
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": prompt.strip(),
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "maxOutputTokens": self.max_output_tokens,
+                "responseMimeType": "application/json",
+                "thinkingConfig": {
+                    "thinkingBudget": 0,
+                },
+            },
         }
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "x-goog-api-key": self.api_key,
             "Content-Type": "application/json",
         }
 
         try:
             response = httpx.post(
-                OPENAI_RESPONSES_URL,
+                self.endpoint_url,
                 headers=headers,
                 json=payload,
                 timeout=self.timeout_seconds,
@@ -104,12 +128,12 @@ class OpenAIDatasetGenerator:
             data = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise DatasetGeneratorError(
-                f"OpenAI dataset generation request failed: {exc}"
+                f"Gemini dataset generation request failed: {exc}"
             ) from exc
 
         output_text = extract_response_text(data)
         if not output_text:
-            raise DatasetGeneratorError("OpenAI response did not include output text")
+            raise DatasetGeneratorError("Gemini response did not include output text")
         return output_text
 
 
@@ -122,19 +146,45 @@ def get_dataset_generator_provider(
         return DisabledDatasetGenerator()
     if normalized_mode == "mock":
         return MockDatasetGenerator()
-    if normalized_mode == "openai":
-        return OpenAIDatasetGenerator()
+    if normalized_mode == "gemini":
+        return GeminiDatasetGenerator(
+            api_key=DATASET_GENERATOR_API_KEY,
+            model=DATASET_GENERATOR_MODEL,
+            timeout_seconds=DATASET_GENERATOR_TIMEOUT_SECONDS,
+            max_output_tokens=DATASET_GENERATOR_MAX_OUTPUT_TOKENS,
+        )
 
     raise DatasetGeneratorError(
-        "DATASET_GENERATOR_MODE must be one of: disabled, mock, openai"
+        "DATASET_GENERATOR_MODE must be one of: disabled, mock, gemini"
     )
 
 
 def extract_response_text(data: dict[str, Any]) -> str:
-    """Extract text from common Responses API response shapes."""
+    """Extract text from common Gemini response shapes."""
     direct_text = data.get("output_text")
     if isinstance(direct_text, str):
         return direct_text.strip()
+
+    candidates = data.get("candidates")
+    if isinstance(candidates, list):
+        parts: list[str] = []
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            content = candidate.get("content")
+            if not isinstance(content, dict):
+                continue
+            content_parts = content.get("parts")
+            if not isinstance(content_parts, list):
+                continue
+            for part in content_parts:
+                if not isinstance(part, dict):
+                    continue
+                text = part.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        if parts:
+            return "\n".join(part.strip() for part in parts if part.strip()).strip()
 
     output = data.get("output")
     if not isinstance(output, list):

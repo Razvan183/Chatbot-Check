@@ -19,6 +19,10 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
+# Local assistant/tooling state
+.agents/
+.codex/
+
 # Local databases and generated data
 *.db
 *.sqlite
@@ -31,4 +35,5 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Local planning notes
 Instructions.md

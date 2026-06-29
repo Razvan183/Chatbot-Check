@@ -11,7 +11,14 @@ from sqlalchemy.orm import Session
 from app.connectors import RAGConnector, get_rag_connector
 from app.connectors.base import FunctionRAGConnector
 from app.db.database import SessionLocal, create_database_tables
-from app.db.models import ChatbotVersion, EvalCase, EvalDataset, EvalResult, EvalRun
+from app.db.models import (
+    ChatbotVersion,
+    EvalCase,
+    EvalDataset,
+    EvalResult,
+    EvalRun,
+    RAGConnectorConfig,
+)
 from app.evaluation.failure_classifier import classify_failure
 from app.evaluation.metrics import (
     answer_keyword_score,
@@ -30,6 +37,22 @@ class EvaluationDatasetNotFoundError(ValueError):
 
 class EvaluationRunError(RuntimeError):
     """Raised when an evaluation run cannot be completed."""
+
+
+def _active_connector_settings(database_session: Session) -> dict[str, Any]:
+    """Load the active persisted connector settings, if configured."""
+    config = database_session.scalar(
+        select(RAGConnectorConfig)
+        .where(RAGConnectorConfig.active.is_(True))
+        .order_by(RAGConnectorConfig.id.desc())
+    )
+    if config is None:
+        return {}
+    return {
+        "connector_name": config.connector_type,
+        "http_url": config.http_url,
+        "timeout_seconds": config.timeout_seconds,
+    }
 
 
 def _load_dataset_cases(
@@ -219,6 +242,7 @@ def execute_evaluation_run(
             raise EvaluationRunError("Evaluation run not found")
         cases = _load_dataset_cases(database_session, eval_run.eval_dataset_id)
         chatbot_version_id = eval_run.chatbot_version_id
+        connector_settings = _active_connector_settings(database_session)
         eval_run.status = "running"
         database_session.commit()
 
@@ -226,7 +250,7 @@ def execute_evaluation_run(
     if rag_connector is None and answer_function is not None:
         rag_connector = FunctionRAGConnector(answer_function)
     if rag_connector is None:
-        rag_connector = get_rag_connector()
+        rag_connector = get_rag_connector(**connector_settings)
 
     try:
         saved_results = []

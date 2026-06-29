@@ -58,6 +58,8 @@ Chatbot Check is being built to make these questions measurable and repeatable.
 - Tuning recommendations for weak retrieval, citations, refusals, and numbers
 - UI workflow for creating tuned runtime versions
 - Connector interface for evaluating internal or external RAG systems
+- Persisted RAG connector configuration and test endpoint
+- LLM-generated draft evaluation datasets with human approval gates
 - Regression comparison API for two evaluation runs
 - Printable HTML comparison reports for sharing release decisions
 - Chat, document, chunk, version, and evaluation API endpoints
@@ -297,6 +299,11 @@ SQLAlchemy.
 | `GET` | `/documents` | List ingested documents |
 | `GET` | `/documents/{document_id}` | Get one document |
 | `GET` | `/documents/{document_id}/chunks` | List its chunks in source order |
+| `POST` | `/evaluation-drafts` | Generate a draft evaluation dataset from ingested chunks |
+| `GET` | `/evaluation-drafts` | List generated draft datasets |
+| `GET` | `/evaluation-drafts/{draft_dataset_id}` | Review draft cases with supporting source chunks |
+| `PATCH` | `/evaluation-drafts/{draft_dataset_id}/cases/{draft_case_id}` | Approve, reject, or edit one draft case |
+| `POST` | `/evaluation-drafts/{draft_dataset_id}/publish` | Publish approved draft cases as an official dataset |
 | `GET` | `/evaluations/datasets` | List evaluation datasets |
 | `GET` | `/evaluations/runs` | List evaluation runs |
 | `POST` | `/evaluations/runs` | Queue one dataset run against one chatbot version |
@@ -360,6 +367,7 @@ The primary workflow is:
 
 ```text
 Choose a configured RAG version
+Configure or test the target RAG connector
 Run the evaluation dataset
 Review the quality scorecard
 Create a tuned runtime version
@@ -429,6 +437,10 @@ Common alternatives such as `response`, `text`, `contexts`, and `sources` are
 also normalized. This is the first step toward using Chatbot Check as a wrapper
 around arbitrary RAG systems.
 
+The demo UI includes a **Connect RAG** panel for choosing `internal` or `http`,
+saving the target URL/timeout, and testing the connector. Saved connector
+settings are persisted in SQLite and used by future evaluation runs.
+
 ## Dataset authoring LLM
 
 Dataset authoring is separated from RAG answering. The target RAG may use a
@@ -441,20 +453,33 @@ By default, autonomous dataset generation is disabled:
 DATASET_GENERATOR_MODE=disabled
 ```
 
-To enable OpenAI-backed dataset authoring:
+To enable Gemini-backed dataset authoring:
 
 ```env
-DATASET_GENERATOR_MODE=openai
-DATASET_GENERATOR_MODEL=gpt-5.2
+DATASET_GENERATOR_MODE=gemini
+DATASET_GENERATOR_MODEL=gemini-2.5-flash
 DATASET_GENERATOR_API_KEY=...
 DATASET_GENERATOR_TIMEOUT_SECONDS=90
 DATASET_GENERATOR_MAX_OUTPUT_TOKENS=4000
 ```
 
-The provider uses the OpenAI Responses API with `model`, `input`, and
-`max_output_tokens`. This layer only configures the authoring LLM; generated
-cases still need the next workflow step: producing candidate cases from chunks
-and reviewing them before they become trusted benchmark ground truth.
+The provider uses Gemini's `models/{model}:generateContent` endpoint with
+`contents`, `generationConfig`, and `responseMimeType=application/json`.
+Generated cases are stored as drafts and must be approved before they become
+trusted benchmark ground truth.
+
+The draft-to-approved workflow is:
+
+```text
+Create evaluation dataset
+Choose requested case count
+Authoring LLM generates draft JSON cases from ingested chunks
+Human reviewer checks each question against its supporting chunks
+Human reviewer edits question, answer, chunk keys, type, difficulty, or notes
+Human reviewer approves or rejects each case
+Publish approved cases into an official EvalDataset
+Run RAG evaluations only on approved benchmark cases
+```
 
 ## Semantic retrieval
 
@@ -495,7 +520,7 @@ python -m pytest
 Current result:
 
 ```text
-130 passed
+134 passed
 ```
 
 The tests cover:
@@ -513,7 +538,9 @@ The tests cover:
 - single-run scorecards, tuning recommendations, regression comparison
   summaries, and HTML reports;
 - internal and HTTP RAG connectors;
+- persisted connector configuration and connector tests;
 - dataset-authoring LLM provider configuration;
+- draft evaluation dataset generation, review, and publishing;
 - database foreign-key enforcement;
 - API ordering, serialization, chat responses, and error handling;
 - idempotent chatbot-version seeding.
@@ -576,7 +603,10 @@ These choices are intentional for the current learning-focused MVP stage.
 - [x] Single-run RAG quality scorecards
 - [x] Runtime tuning UI for chatbot versions
 - [x] RAG connector interface
+- [x] External RAG configuration and test UI
 - [x] Separate dataset-authoring LLM configuration
+- [x] Draft evaluation dataset generation and human approval workflow
+- [x] Editable draft case review with supporting chunks
 - [x] Lightweight browser demo
 - [x] Stable chunk keys for retrieval-aware evaluation
 - [x] Expanded 50-case evaluation dataset

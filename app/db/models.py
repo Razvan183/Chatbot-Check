@@ -73,6 +73,19 @@ class ChatbotVersion(Base):
     eval_runs: Mapped[list["EvalRun"]] = relationship(back_populates="chatbot_version")
 
 
+class RAGConnectorConfig(Base):
+    """Persisted RAG target connector configuration."""
+
+    __tablename__ = "rag_connector_configs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    connector_type: Mapped[str] = mapped_column(String(50), default="internal")
+    http_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    timeout_seconds: Mapped[float] = mapped_column(Float, default=60)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class ChatLog(Base):
     """One question and answer produced by a chatbot version."""
 

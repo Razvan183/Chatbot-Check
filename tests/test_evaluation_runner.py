@@ -11,6 +11,7 @@ from sqlalchemy.pool import StaticPool
 from app.connectors.base import RAGAnswer
 from app.db.database import Base
 from app.db.models import ChatbotVersion, EvalCase, EvalDataset, EvalResult, EvalRun
+from app.db.models import RAGConnectorConfig
 from app.evaluation.runner import (
     EvaluationDatasetNotFoundError,
     evaluate_case,
@@ -208,6 +209,79 @@ def test_run_evaluation_can_use_connector_object(
 
     assert summary["status"] == "completed"
     assert summary["passed_cases"] == 2
+
+
+def test_run_evaluation_uses_active_persisted_connector_settings(
+    evaluation_session_factory: Callable[[], Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = {}
+
+    class FakeConnector:
+        def answer(
+            self,
+            question: str,
+            chatbot_version_id: int,
+            session_factory: Callable[[], Session],
+        ) -> RAGAnswer:
+            del chatbot_version_id, session_factory
+            if "gym" in question:
+                return {
+                    "question": question,
+                    "answer": "I could not find this information in the provided documents.",
+                    "retrieved_chunks": [],
+                    "citations": [],
+                    "latency_ms": 1,
+                }
+            return {
+                "question": question,
+                "answer": "Employees receive 21 vacation days. [10]",
+                "retrieved_chunks": [
+                    {
+                        "chunk_id": 10,
+                        "chunk_key": "vacation_policy.md::0",
+                        "document_id": 1,
+                        "filename": "vacation_policy.md",
+                        "chunk_text": "Employees receive 21 vacation days.",
+                        "score": 0.9,
+                    }
+                ],
+                "citations": [10],
+                "latency_ms": 1,
+            }
+
+    def fake_get_rag_connector(**kwargs):
+        captured.update(kwargs)
+        return FakeConnector()
+
+    monkeypatch.setattr(
+        "app.evaluation.runner.get_rag_connector",
+        fake_get_rag_connector,
+    )
+    with evaluation_session_factory() as session:
+        session.add(
+            RAGConnectorConfig(
+                connector_type="http",
+                http_url="http://rag.local/chat",
+                timeout_seconds=9,
+                active=True,
+            )
+        )
+        session.commit()
+
+    summary = run_evaluation(
+        eval_dataset_id=1,
+        chatbot_version_id=1,
+        run_name="Persisted connector eval",
+        session_factory=evaluation_session_factory,
+    )
+
+    assert summary["status"] == "completed"
+    assert captured == {
+        "connector_name": "http",
+        "http_url": "http://rag.local/chat",
+        "timeout_seconds": 9,
+    }
 
 
 def test_run_evaluation_rejects_missing_dataset(

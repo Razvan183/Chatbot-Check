@@ -98,6 +98,44 @@ class ChatbotVersionCreateRequest(BaseModel):
     prompt_template: str | None = None
 
 
+class RAGConnectorConfigRequest(BaseModel):
+    """Persisted target RAG connector configuration."""
+
+    connector_type: str = Field(pattern="^(internal|http)$")
+    http_url: str | None = None
+    timeout_seconds: float = Field(default=60, gt=0, le=300)
+
+
+class RAGConnectorConfigResponse(BaseModel):
+    """Public target RAG connector configuration."""
+
+    id: int | None
+    connector_type: str
+    http_url: str | None
+    timeout_seconds: float
+    active: bool
+    source: str
+
+
+class RAGConnectorTestRequest(BaseModel):
+    """Payload for testing a connector without necessarily saving it."""
+
+    connector_type: str = Field(pattern="^(internal|http)$")
+    http_url: str | None = None
+    timeout_seconds: float = Field(default=60, gt=0, le=300)
+    question: str = "Connector health check"
+
+
+class RAGConnectorTestResponse(BaseModel):
+    """Result of testing a RAG connector."""
+
+    ok: bool
+    message: str
+    answer_preview: str | None = None
+    retrieved_chunk_count: int = 0
+    latency_ms: int | None = None
+
+
 class EvaluationDatasetResponse(BaseModel):
     """Public metadata for an evaluation dataset."""
 
@@ -119,6 +157,16 @@ class DraftEvalDatasetCreateRequest(BaseModel):
     case_mix: dict[str, int] | None = None
 
 
+class DraftEvalSupportingChunkResponse(BaseModel):
+    """Source chunk shown beside a draft case during human review."""
+
+    chunk_key: str
+    document_id: int
+    filename: str
+    chunk_index: int
+    chunk_text: str
+
+
 class DraftEvalCaseResponse(BaseModel):
     """Human-reviewable candidate eval case."""
 
@@ -133,6 +181,7 @@ class DraftEvalCaseResponse(BaseModel):
     confidence: float | None
     status: str
     reviewer_notes: str | None
+    supporting_chunks: list[DraftEvalSupportingChunkResponse]
     created_at: datetime
     updated_at: datetime
 

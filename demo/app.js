@@ -2,6 +2,8 @@ const state = {
   versions: [],
   datasets: [],
   runs: [],
+  drafts: [],
+  selectedDraftId: null,
   selectedRunId: null,
   comparisonBaselineId: null,
   comparisonCandidateId: null,
@@ -43,6 +45,15 @@ function formatSignedPercent(value) {
 
 function formatSignedNumber(value) {
   return `${value > 0 ? "+" : ""}${value}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function truncate(text, size = 220) {
@@ -90,6 +101,93 @@ function renderDatasets() {
       `<option value="${dataset.id}">${dataset.name} (${dataset.case_count})</option>`
     ))
     .join("");
+}
+
+function renderDrafts() {
+  $("#draftBadge").textContent = state.drafts.length
+    ? `${state.drafts.length} drafts`
+    : "No drafts";
+  $("#draftsList").innerHTML = state.drafts.map((draft) => `
+    <button class="run-card ${draft.id === state.selectedDraftId ? "selected" : ""}" data-draft-id="${draft.id}" type="button">
+      <div class="card-title">
+        <span>${draft.name}</span>
+        <span class="score">${draft.status}</span>
+      </div>
+      <div class="card-meta">${draft.approved_case_count} approved, ${draft.rejected_case_count} rejected, ${draft.draft_case_count} draft</div>
+    </button>
+  `).join("");
+
+  $$("#draftsList .run-card[data-draft-id]").forEach((button) => {
+    button.addEventListener("click", () => loadDraft(Number(button.dataset.draftId)));
+  });
+}
+
+function renderDraftCases(draft) {
+  state.selectedDraftId = draft.id;
+  $("#draftBadge").textContent = `${draft.approved_case_count} approved`;
+  $("#draftCasesList").innerHTML = draft.cases.map((item) => `
+    <article class="result-card draft-case-card" data-draft-case-card-id="${item.id}">
+      <div class="card-title">
+        <span class="${item.status === "rejected" ? "failed" : "passed"}">${escapeHtml(item.status)}</span>
+        <span class="score">${escapeHtml(item.question_type)}</span>
+      </div>
+      <div class="card-meta">${escapeHtml(item.expected_chunk_keys.join(", ") || "No expected chunks")} - confidence ${escapeHtml(item.confidence ?? "n/a")}</div>
+      <label>Question</label>
+      <textarea class="draft-question-input" rows="2">${escapeHtml(item.question)}</textarea>
+      <label>Expected answer</label>
+      <textarea class="draft-answer-input" rows="3">${escapeHtml(item.expected_answer || "")}</textarea>
+      <label>Expected chunk keys</label>
+      <input class="draft-chunk-keys-input" type="text" value="${escapeHtml(item.expected_chunk_keys.join(", "))}">
+      <div class="tuning-grid">
+        <label>Type</label>
+        <input class="draft-type-input" type="text" value="${escapeHtml(item.question_type)}">
+        <label>Difficulty</label>
+        <input class="draft-difficulty-input" type="text" value="${escapeHtml(item.difficulty)}">
+        <label>Answerable</label>
+        <select class="draft-answerable-input">
+          <option value="true" ${item.should_be_answerable ? "selected" : ""}>Yes</option>
+          <option value="false" ${item.should_be_answerable ? "" : "selected"}>No</option>
+        </select>
+      </div>
+      <label>Reviewer notes</label>
+      <textarea class="draft-notes-input" rows="2">${escapeHtml(item.reviewer_notes || "")}</textarea>
+      <div class="supporting-chunks">
+        ${item.supporting_chunks.length ? item.supporting_chunks.map((chunk) => `
+          <div class="supporting-chunk">
+            <div class="card-title">
+              <span>${escapeHtml(chunk.chunk_key)}</span>
+              <span class="score">${escapeHtml(chunk.filename)}</span>
+            </div>
+            <div class="card-body">${escapeHtml(truncate(chunk.chunk_text, 520))}</div>
+          </div>
+        `).join("") : `
+          <div class="supporting-chunk">
+            <div class="card-meta">No supporting chunks expected for this case.</div>
+          </div>
+        `}
+      </div>
+      <div class="quick-prompts">
+        <button type="button" data-draft-case-id="${item.id}" data-review-status="draft">Save Draft</button>
+        <button type="button" data-draft-case-id="${item.id}" data-review-status="approved">Approve</button>
+        <button type="button" data-draft-case-id="${item.id}" data-review-status="rejected">Reject</button>
+      </div>
+    </article>
+  `).join("");
+
+  $$("[data-draft-case-id]").forEach((button) => {
+    button.addEventListener("click", () => reviewDraftCase(
+      draft.id,
+      Number(button.dataset.draftCaseId),
+      button.dataset.reviewStatus,
+    ));
+  });
+}
+
+function renderConnectorConfig(config) {
+  $("#connectorTypeSelect").value = config.connector_type;
+  $("#connectorUrlInput").value = config.http_url || "";
+  $("#connectorTimeoutInput").value = config.timeout_seconds || 60;
+  $("#connectorBadge").textContent = `${config.connector_type} (${config.source})`;
 }
 
 function renderEvidence(chunks) {
@@ -206,7 +304,7 @@ function renderRuns() {
     </button>
   `).join("");
 
-  $$(".run-card").forEach((button) => {
+  $$("#runsList .run-card[data-run-id]").forEach((button) => {
     button.addEventListener("click", () => loadRunResults(Number(button.dataset.runId)));
   });
 }
@@ -373,6 +471,170 @@ async function createTunedVersion() {
   }
 }
 
+async function loadDrafts() {
+  state.drafts = await api("/evaluation-drafts");
+  if (!state.selectedDraftId && state.drafts.length) {
+    state.selectedDraftId = state.drafts[0].id;
+  }
+  renderDrafts();
+  if (state.selectedDraftId) {
+    await loadDraft(state.selectedDraftId);
+  }
+}
+
+async function loadConnectorConfig() {
+  try {
+    const config = await api("/rag-connector");
+    renderConnectorConfig(config);
+  } catch (error) {
+    $("#connectorBadge").textContent = "Unavailable";
+    showToast(error.message);
+  }
+}
+
+function connectorPayloadFromForm() {
+  return {
+    connector_type: $("#connectorTypeSelect").value,
+    http_url: $("#connectorUrlInput").value.trim() || null,
+    timeout_seconds: Number($("#connectorTimeoutInput").value) || 60,
+  };
+}
+
+async function saveConnectorConfig() {
+  $("#saveConnectorButton").disabled = true;
+  try {
+    const config = await api("/rag-connector", {
+      method: "POST",
+      body: JSON.stringify(connectorPayloadFromForm()),
+    });
+    renderConnectorConfig(config);
+    showToast("RAG connector saved. Future evaluations will use it.");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    $("#saveConnectorButton").disabled = false;
+  }
+}
+
+async function testConnectorConfig() {
+  $("#testConnectorButton").disabled = true;
+  $("#connectorBadge").textContent = "Testing";
+  try {
+    const result = await api("/rag-connector/test", {
+      method: "POST",
+      body: JSON.stringify({
+        ...connectorPayloadFromForm(),
+        question: "Connector health check",
+      }),
+    });
+    $("#connectorBadge").textContent = result.ok ? "OK" : "Failed";
+    showToast(result.message);
+  } catch (error) {
+    $("#connectorBadge").textContent = "Error";
+    showToast(error.message);
+  } finally {
+    $("#testConnectorButton").disabled = false;
+  }
+}
+
+async function loadDraft(draftId) {
+  const draft = await api(`/evaluation-drafts/${draftId}`);
+  state.selectedDraftId = draft.id;
+  const index = state.drafts.findIndex((item) => item.id === draft.id);
+  if (index >= 0) {
+    state.drafts[index] = draft;
+  }
+  renderDrafts();
+  renderDraftCases(draft);
+}
+
+async function createDraftDataset() {
+  const datasetName = $("#draftNameInput").value.trim();
+  const caseCount = Number($("#draftCaseCountInput").value);
+  if (!datasetName || !caseCount) {
+    showToast("Enter a draft dataset name and case count.");
+    return;
+  }
+
+  $("#createDraftButton").disabled = true;
+  showToast("Generating draft cases. This may take a moment.");
+  try {
+    const draft = await api("/evaluation-drafts", {
+      method: "POST",
+      body: JSON.stringify({
+        dataset_name: datasetName,
+        case_count: caseCount,
+        description: "LLM-generated draft dataset awaiting human review.",
+        domain: "company_policy",
+      }),
+    });
+    state.selectedDraftId = draft.id;
+    await loadDrafts();
+    showToast("Draft dataset created. Review cases before publishing.");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    $("#createDraftButton").disabled = false;
+  }
+}
+
+function draftCasePayload(caseId, reviewStatus) {
+  const card = $(`[data-draft-case-card-id="${caseId}"]`);
+  const chunkKeys = card.querySelector(".draft-chunk-keys-input").value
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const expectedAnswer = card.querySelector(".draft-answer-input").value.trim();
+
+  return {
+    status: reviewStatus,
+    question: card.querySelector(".draft-question-input").value.trim(),
+    expected_answer: expectedAnswer || null,
+    expected_chunk_keys: chunkKeys,
+    question_type: card.querySelector(".draft-type-input").value.trim(),
+    difficulty: card.querySelector(".draft-difficulty-input").value.trim(),
+    should_be_answerable: card.querySelector(".draft-answerable-input").value === "true",
+    reviewer_notes: card.querySelector(".draft-notes-input").value.trim() || null,
+  };
+}
+
+async function reviewDraftCase(draftId, caseId, reviewStatus) {
+  try {
+    await api(`/evaluation-drafts/${draftId}/cases/${caseId}`, {
+      method: "PATCH",
+      body: JSON.stringify(draftCasePayload(caseId, reviewStatus)),
+    });
+    await loadDraft(draftId);
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+async function publishDraftDataset() {
+  if (!state.selectedDraftId) {
+    showToast("Select a draft dataset first.");
+    return;
+  }
+
+  $("#publishDraftButton").disabled = true;
+  try {
+    const published = await api(`/evaluation-drafts/${state.selectedDraftId}/publish`, {
+      method: "POST",
+    });
+    const [datasets] = await Promise.all([
+      api("/evaluations/datasets"),
+      loadDrafts(),
+    ]);
+    state.datasets = datasets;
+    renderDatasets();
+    showToast(`Published ${published.case_count} approved cases.`);
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    $("#publishDraftButton").disabled = false;
+  }
+}
+
 function openComparisonReport() {
   const baselineId = Number($("#baselineRunSelect").value);
   const candidateId = Number($("#candidateRunSelect").value);
@@ -508,7 +770,7 @@ function wireEvents() {
   $("#questionInput").addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) askQuestion();
   });
-  $$(".quick-prompts button").forEach((button) => {
+  $$("#chatView .quick-prompts button").forEach((button) => {
     button.addEventListener("click", () => {
       $("#questionInput").value = button.textContent;
       askQuestion();
@@ -516,6 +778,10 @@ function wireEvents() {
   });
   $("#runEvaluationButton").addEventListener("click", runEvaluation);
   $("#createVersionButton").addEventListener("click", createTunedVersion);
+  $("#createDraftButton").addEventListener("click", createDraftDataset);
+  $("#publishDraftButton").addEventListener("click", publishDraftDataset);
+  $("#saveConnectorButton").addEventListener("click", saveConnectorConfig);
+  $("#testConnectorButton").addEventListener("click", testConnectorConfig);
   $("#refreshRunsButton").addEventListener("click", loadRuns);
   $("#compareRunsButton").addEventListener("click", compareRuns);
   $("#openReportButton").addEventListener("click", openComparisonReport);
@@ -548,7 +814,7 @@ async function init() {
     state.datasets = datasets;
     renderVersions();
     renderDatasets();
-    await Promise.all([loadRuns(), loadDocuments()]);
+    await Promise.all([loadRuns(), loadDocuments(), loadDrafts(), loadConnectorConfig()]);
   } catch (error) {
     showToast(error.message);
   }

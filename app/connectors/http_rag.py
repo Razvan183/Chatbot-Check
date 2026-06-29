@@ -16,9 +16,13 @@ class HTTPRAGConnector:
 
     def __init__(
         self,
-        endpoint_url: str = HTTP_RAG_URL,
-        timeout_seconds: float = HTTP_RAG_TIMEOUT_SECONDS,
+        endpoint_url: str | None = HTTP_RAG_URL,
+        timeout_seconds: float | None = HTTP_RAG_TIMEOUT_SECONDS,
     ) -> None:
+        endpoint_url = HTTP_RAG_URL if endpoint_url is None else endpoint_url
+        timeout_seconds = (
+            HTTP_RAG_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
+        )
         if not endpoint_url.strip():
             raise RAGConnectorError("HTTP_RAG_URL must be configured for http connector")
         self.endpoint_url = endpoint_url

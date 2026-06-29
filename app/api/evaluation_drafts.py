@@ -10,13 +10,21 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.db.models import DraftEvalCase, DraftEvalDataset, EvalCase, EvalDataset
+from app.db.models import (
+    Document,
+    DocumentChunk,
+    DraftEvalCase,
+    DraftEvalDataset,
+    EvalCase,
+    EvalDataset,
+)
 from app.db.schemas import (
     DraftEvalCaseResponse,
     DraftEvalCaseReviewRequest,
     DraftEvalDatasetCreateRequest,
     DraftEvalDatasetPublishResponse,
     DraftEvalDatasetResponse,
+    DraftEvalSupportingChunkResponse,
 )
 from app.evaluation.dataset_generator import DatasetGeneratorError
 from app.evaluation.draft_generation import (
@@ -39,20 +47,68 @@ def _decode_str_list(raw_value: str | None) -> list[str]:
     return [str(value) for value in decoded]
 
 
-def _case_response(draft_case: DraftEvalCase) -> DraftEvalCaseResponse:
+def _supporting_chunks(
+    database_session: Session,
+    expected_chunk_keys: list[str],
+) -> list[DraftEvalSupportingChunkResponse]:
+    """Resolve expected chunk keys into source text for human review."""
+    if not expected_chunk_keys:
+        return []
+
+    statement = (
+        select(DocumentChunk, Document.filename)
+        .join(Document, DocumentChunk.document_id == Document.id)
+        .where(DocumentChunk.chunk_key.in_(expected_chunk_keys))
+        .order_by(Document.filename, DocumentChunk.chunk_index)
+    )
+    chunks_by_key = {
+        chunk.chunk_key: DraftEvalSupportingChunkResponse(
+            chunk_key=chunk.chunk_key or f"{filename}::{chunk.chunk_index}",
+            document_id=chunk.document_id,
+            filename=filename,
+            chunk_index=chunk.chunk_index,
+            chunk_text=chunk.chunk_text,
+        )
+        for chunk, filename in database_session.execute(statement)
+    }
+    return [
+        chunks_by_key[chunk_key]
+        for chunk_key in expected_chunk_keys
+        if chunk_key in chunks_by_key
+    ]
+
+
+def _valid_chunk_keys(database_session: Session, chunk_keys: list[str]) -> list[str]:
+    """Return the subset of chunk keys that exist in the current corpus."""
+    if not chunk_keys:
+        return []
+    existing_keys = set(
+        database_session.scalars(
+            select(DocumentChunk.chunk_key).where(DocumentChunk.chunk_key.in_(chunk_keys))
+        )
+    )
+    return [chunk_key for chunk_key in chunk_keys if chunk_key in existing_keys]
+
+
+def _case_response(
+    database_session: Session,
+    draft_case: DraftEvalCase,
+) -> DraftEvalCaseResponse:
     """Convert a draft case row into an API response."""
+    expected_chunk_keys = _decode_str_list(draft_case.expected_chunk_keys)
     return DraftEvalCaseResponse(
         id=draft_case.id,
         case_uid=draft_case.case_uid,
         question=draft_case.question,
         expected_answer=draft_case.expected_answer,
-        expected_chunk_keys=_decode_str_list(draft_case.expected_chunk_keys),
+        expected_chunk_keys=expected_chunk_keys,
         question_type=draft_case.question_type,
         difficulty=draft_case.difficulty,
         should_be_answerable=draft_case.should_be_answerable,
         confidence=draft_case.confidence,
         status=draft_case.status,
         reviewer_notes=draft_case.reviewer_notes,
+        supporting_chunks=_supporting_chunks(database_session, expected_chunk_keys),
         created_at=draft_case.created_at,
         updated_at=draft_case.updated_at,
     )
@@ -98,7 +154,7 @@ def _draft_response(
         rejected_case_count=counts["rejected"],
         published_eval_dataset_id=draft_dataset.published_eval_dataset_id,
         created_at=draft_dataset.created_at,
-        cases=[_case_response(draft_case) for draft_case in cases],
+        cases=[_case_response(database_session, draft_case) for draft_case in cases],
     )
 
 
@@ -198,7 +254,9 @@ def review_draft_eval_case(
     if request.expected_answer is not None:
         draft_case.expected_answer = request.expected_answer.strip() or None
     if request.expected_chunk_keys is not None:
-        draft_case.expected_chunk_keys = json.dumps(request.expected_chunk_keys)
+        draft_case.expected_chunk_keys = json.dumps(
+            _valid_chunk_keys(database_session, request.expected_chunk_keys)
+        )
     if request.question_type is not None:
         draft_case.question_type = request.question_type.strip()
     if request.difficulty is not None:
@@ -212,7 +270,7 @@ def review_draft_eval_case(
     draft_case.updated_at = datetime.now(timezone.utc)
     database_session.commit()
     database_session.refresh(draft_case)
-    return _case_response(draft_case)
+    return _case_response(database_session, draft_case)
 
 
 @router.post(

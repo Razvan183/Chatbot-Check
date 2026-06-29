@@ -12,6 +12,7 @@ from app.api.chat import router as chat_router
 from app.api.documents import router as documents_router
 from app.api.evaluation_drafts import router as evaluation_drafts_router
 from app.api.evaluations import router as evaluations_router
+from app.api.rag_connectors import router as rag_connectors_router
 from app.api.versions import router as versions_router
 from app.config import APP_NAME, APP_SERVICE_NAME
 from app.db.database import create_database_tables
@@ -38,6 +39,7 @@ app.include_router(chat_router)
 app.include_router(documents_router)
 app.include_router(evaluation_drafts_router)
 app.include_router(evaluations_router)
+app.include_router(rag_connectors_router)
 app.include_router(versions_router)
 
 app.mount("/static", StaticFiles(directory=DEMO_DIR), name="static")

@@ -6,8 +6,8 @@ import pytest
 from app.evaluation.dataset_generator import (
     DatasetGeneratorError,
     DisabledDatasetGenerator,
+    GeminiDatasetGenerator,
     MockDatasetGenerator,
-    OpenAIDatasetGenerator,
     extract_response_text,
     get_dataset_generator_provider,
 )
@@ -27,12 +27,23 @@ def test_mock_dataset_generator_returns_configured_text() -> None:
     assert provider.generate_text("Generate cases") == '[{"id":"q001"}]'
 
 
-def test_openai_dataset_generator_requires_api_key() -> None:
+def test_gemini_dataset_generator_can_be_selected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.evaluation.dataset_generator.DATASET_GENERATOR_API_KEY",
+        "test-key",
+    )
+
+    assert isinstance(get_dataset_generator_provider("gemini"), GeminiDatasetGenerator)
+
+
+def test_gemini_dataset_generator_requires_api_key() -> None:
     with pytest.raises(DatasetGeneratorError):
-        OpenAIDatasetGenerator(api_key="")
+        GeminiDatasetGenerator(api_key="")
 
 
-def test_openai_dataset_generator_calls_responses_api(
+def test_gemini_dataset_generator_calls_generate_content_api(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured = {}
@@ -54,9 +65,9 @@ def test_openai_dataset_generator_calls_responses_api(
         )
 
     monkeypatch.setattr("app.evaluation.dataset_generator.httpx.post", fake_post)
-    provider = OpenAIDatasetGenerator(
+    provider = GeminiDatasetGenerator(
         api_key="test-key",
-        model="gpt-test",
+        model="gemini-test",
         timeout_seconds=12,
         max_output_tokens=500,
     )
@@ -64,14 +75,42 @@ def test_openai_dataset_generator_calls_responses_api(
     assert provider.generate_text("Generate evaluation cases") == (
         '[{"question":"What is the policy?"}]'
     )
-    assert captured["url"] == "https://api.openai.com/v1/responses"
-    assert captured["headers"]["Authorization"] == "Bearer test-key"
+    assert captured["url"] == (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        "models/gemini-test:generateContent"
+    )
+    assert captured["headers"]["x-goog-api-key"] == "test-key"
     assert captured["json"] == {
-        "model": "gpt-test",
-        "input": "Generate evaluation cases",
-        "max_output_tokens": 500,
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": "Generate evaluation cases",
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "maxOutputTokens": 500,
+            "responseMimeType": "application/json",
+            "thinkingConfig": {
+                "thinkingBudget": 0,
+            },
+        },
     }
     assert captured["timeout"] == 12
+
+
+def test_gemini_dataset_generator_accepts_prefixed_model_name() -> None:
+    provider = GeminiDatasetGenerator(
+        api_key="test-key",
+        model="models/gemini-test",
+    )
+
+    assert provider.endpoint_url == (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        "models/gemini-test:generateContent"
+    )
 
 
 def test_extract_response_text_from_output_content_items() -> None:
@@ -82,6 +121,23 @@ def test_extract_response_text_from_output_content_items() -> None:
                     {"text": "First part"},
                     {"text": "Second part"},
                 ]
+            }
+        ]
+    }
+
+    assert extract_response_text(payload) == "First part\nSecond part"
+
+
+def test_extract_response_text_from_gemini_candidates() -> None:
+    payload = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {"text": "First part"},
+                        {"text": "Second part"},
+                    ]
+                }
             }
         ]
     }

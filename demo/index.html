@@ -16,7 +16,9 @@
 
         <nav class="nav-tabs" aria-label="Demo sections">
           <button class="nav-tab active" data-view="chatView" type="button">Chat</button>
-          <button class="nav-tab" data-view="evalView" type="button">Evaluations</button>
+          <button class="nav-tab" data-view="evalView" type="button">Evaluate</button>
+          <button class="nav-tab" data-view="datasetView" type="button">Datasets</button>
+          <button class="nav-tab" data-view="tuningView" type="button">Tuning</button>
           <button class="nav-tab" data-view="docsView" type="button">Corpus</button>
         </nav>
 
@@ -75,12 +77,32 @@
           <div class="top-bar">
             <div>
               <p class="eyebrow">RAG quality score</p>
-              <h2>Evaluate and tune</h2>
+              <h2>Evaluate runs</h2>
             </div>
             <button id="refreshRunsButton" class="secondary-button" type="button">Refresh</button>
           </div>
 
           <div id="runSummary" class="metric-strip"></div>
+          <section class="connector-panel">
+            <div class="panel-heading">
+              <h3>Connect RAG</h3>
+              <span id="connectorBadge">Checking</span>
+            </div>
+            <div class="connector-grid">
+              <label for="connectorTypeSelect">Connector</label>
+              <select id="connectorTypeSelect">
+                <option value="internal">Internal demo RAG</option>
+                <option value="http">External HTTP RAG</option>
+              </select>
+              <label for="connectorUrlInput">HTTP URL</label>
+              <input id="connectorUrlInput" type="url" placeholder="http://localhost:9000/chat">
+              <label for="connectorTimeoutInput">Timeout</label>
+              <input id="connectorTimeoutInput" type="number" min="1" max="300" value="60">
+              <button id="testConnectorButton" class="secondary-button" type="button">Test</button>
+              <button id="saveConnectorButton" class="secondary-button" type="button">Save</button>
+            </div>
+          </section>
+
           <section class="scorecard-panel">
             <div class="panel-heading">
               <h3>Quality Scorecard</h3>
@@ -89,26 +111,6 @@
             <div id="scorecardMetrics" class="metric-strip"></div>
             <div id="failureSummary" class="breakdown-grid"></div>
             <div id="recommendationsList" class="list-stack"></div>
-          </section>
-
-          <section class="tuning-panel">
-            <div class="panel-heading">
-              <h3>Runtime Tuning</h3>
-              <span>Query-time settings</span>
-            </div>
-            <div class="tuning-grid">
-              <label for="tunedNameInput">Name</label>
-              <input id="tunedNameInput" type="text" value="tuned_runtime_v1">
-              <label for="tunedTopKInput">Top-k</label>
-              <input id="tunedTopKInput" type="number" min="1" max="20" value="5">
-              <label for="tunedTemperatureInput">Temperature</label>
-              <input id="tunedTemperatureInput" type="number" min="0" max="2" step="0.1" value="0">
-              <label for="tunedModelInput">Model</label>
-              <input id="tunedModelInput" type="text" value="mock">
-              <label for="tunedPromptInput">Prompt template</label>
-              <textarea id="tunedPromptInput" rows="4" placeholder="Leave empty to use the default strict RAG prompt."></textarea>
-              <button id="createVersionButton" class="secondary-button" type="button">Create Tuned Version</button>
-            </div>
           </section>
 
           <section class="comparison-panel">
@@ -144,6 +146,76 @@
               <div id="resultsList" class="list-stack"></div>
             </section>
           </div>
+        </section>
+
+        <section id="datasetView" class="view">
+          <div class="top-bar">
+            <div>
+              <p class="eyebrow">Benchmark authoring</p>
+              <h2>Create and review datasets</h2>
+            </div>
+            <span id="draftBadge" class="status-pill">Draft review</span>
+          </div>
+
+          <section class="draft-panel">
+            <div class="panel-heading">
+              <h3>Create Draft Dataset</h3>
+              <span>Gemini authoring</span>
+            </div>
+            <div class="draft-controls">
+              <label for="draftNameInput">Name</label>
+              <input id="draftNameInput" type="text" value="Generated Eval Dataset">
+              <label for="draftCaseCountInput">Cases</label>
+              <input id="draftCaseCountInput" type="number" min="1" max="100" value="10">
+              <button id="createDraftButton" class="secondary-button" type="button">Create Draft</button>
+            </div>
+          </section>
+
+          <div class="split-layout draft-review-layout">
+            <section>
+              <div class="panel-heading">
+                <h3>Drafts</h3>
+                <span>Generated sets</span>
+              </div>
+              <div id="draftsList" class="list-stack"></div>
+            </section>
+            <section>
+              <div class="panel-heading">
+                <h3>Review Cases</h3>
+                <button id="publishDraftButton" class="secondary-button" type="button">Publish Approved</button>
+              </div>
+              <div id="draftCasesList" class="list-stack"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tuningView" class="view">
+          <div class="top-bar">
+            <div>
+              <p class="eyebrow">Runtime settings</p>
+              <h2>Tune a chatbot version</h2>
+            </div>
+          </div>
+
+          <section class="tuning-panel">
+            <div class="panel-heading">
+              <h3>Runtime Tuning</h3>
+              <span>Query-time settings</span>
+            </div>
+            <div class="tuning-grid">
+              <label for="tunedNameInput">Name</label>
+              <input id="tunedNameInput" type="text" value="tuned_runtime_v1">
+              <label for="tunedTopKInput">Top-k</label>
+              <input id="tunedTopKInput" type="number" min="1" max="20" value="5">
+              <label for="tunedTemperatureInput">Temperature</label>
+              <input id="tunedTemperatureInput" type="number" min="0" max="2" step="0.1" value="0">
+              <label for="tunedModelInput">Model</label>
+              <input id="tunedModelInput" type="text" value="mock">
+              <label for="tunedPromptInput">Prompt template</label>
+              <textarea id="tunedPromptInput" rows="4" placeholder="Leave empty to use the default strict RAG prompt."></textarea>
+              <button id="createVersionButton" class="secondary-button" type="button">Create Tuned Version</button>
+            </div>
+          </section>
         </section>
 
         <section id="docsView" class="view">
