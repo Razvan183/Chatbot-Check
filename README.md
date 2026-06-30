@@ -12,6 +12,10 @@ The project includes a working FastAPI backend, SQLite persistence, a browser
 demo, repeatable seed data, evaluation scorecards, regression comparison, and
 CI-backed tests.
 
+## Demo
+
+Watch the demo: https://youtu.be/ugAK3opayqE
+
 ## Why It Matters
 
 Teams shipping RAG systems need more than a chat endpoint. They need to answer:
