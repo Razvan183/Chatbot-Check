@@ -48,6 +48,21 @@ def test_embed_texts_skips_model_loading_for_empty_input(
     assert embeddings.embed_texts([]) == []
 
 
+def test_embed_texts_falls_back_when_model_loading_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_to_load_model():
+        raise OSError("model unavailable")
+
+    monkeypatch.setattr(embeddings, "get_embedding_model", fail_to_load_model)
+
+    result = embeddings.embed_texts(["vacation policy", "vacation days"])
+
+    assert len(result) == 2
+    assert all(len(vector) == embeddings.FALLBACK_EMBEDDING_DIMENSIONS for vector in result)
+    assert result[0] == embeddings.build_fallback_embedding("vacation policy")
+
+
 @pytest.mark.parametrize(
     "texts",
     [
@@ -68,8 +83,9 @@ def test_get_embedding_model_uses_configured_name_and_cache(
     sentinel_model = object()
 
     class FakeSentenceTransformer:
-        def __new__(cls, model_name: str):
+        def __new__(cls, model_name: str, *, local_files_only: bool):
             loaded_model_names.append(model_name)
+            assert local_files_only is True
             return sentinel_model
 
     monkeypatch.setattr(

@@ -1,6 +1,8 @@
 """Embedding helpers used by semantic retrieval."""
 
 from functools import lru_cache
+import hashlib
+import re
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -12,12 +14,33 @@ if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
 
 
+FALLBACK_EMBEDDING_DIMENSIONS = 64
+TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+
+
 @lru_cache(maxsize=1)
 def get_embedding_model() -> "SentenceTransformer":
     """Load the configured sentence-transformer model once per process."""
     from sentence_transformers import SentenceTransformer
 
-    return SentenceTransformer(DEFAULT_EMBEDDING_MODEL)
+    return SentenceTransformer(DEFAULT_EMBEDDING_MODEL, local_files_only=True)
+
+
+def build_fallback_embedding(text: str) -> list[float]:
+    """Create a deterministic lexical embedding when the ML model is unavailable."""
+    vector = np.zeros(FALLBACK_EMBEDDING_DIMENSIONS, dtype=float)
+    tokens = TOKEN_PATTERN.findall(text.lower())
+
+    for token in tokens:
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        index = int.from_bytes(digest[:2], "big") % FALLBACK_EMBEDDING_DIMENSIONS
+        vector[index] += 1.0
+
+    norm = np.linalg.norm(vector)
+    if norm == 0:
+        return vector.tolist()
+
+    return (vector / norm).tolist()
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
@@ -29,13 +52,20 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
 
-    model = get_embedding_model()
-    embeddings = model.encode(
-        texts,
-        convert_to_numpy=True,
-        show_progress_bar=False,
-    )
-    return np.asarray(embeddings, dtype=float).tolist()
+    try:
+        model = get_embedding_model()
+        embeddings = model.encode(
+            texts,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        )
+        return np.asarray(embeddings, dtype=float).tolist()
+    except Exception:
+        cache_clear = getattr(get_embedding_model, "cache_clear", None)
+        if cache_clear is not None:
+            cache_clear()
+        return [build_fallback_embedding(text) for text in texts]
+
 
 
 def cosine_similarity(a: ArrayLike, b: ArrayLike) -> float:
